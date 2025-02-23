@@ -1,0 +1,21 @@
+# Ne pas committer le dossier des dépendances (peut être recréé avec `npm install`)
+node_modules/
+
+# Ne pas committer les variables d'environnement (contenant des mots de passe, clés API...)
+.env
+
+# Fichiers logs
+logs/
+*.log
+
+# Dépendances locales de l'éditeur
+.vscode/
+.idea/
+
+# Fichiers générés par npm/yarn
+package-lock.json
+yarn.lock
+
+# Cache de l'environnement
+npm-debug.log*
+.DS_Store
