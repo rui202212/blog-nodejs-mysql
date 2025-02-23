@@ -17,7 +17,7 @@ router.post("/post", authenticateToken, async (req, res) => {
     // Créer l'article avec user_id
     const newPost = await Post.create({ title, article, user_id });
 
-    res
+    return res
       .status(201)
       .json({ message: "Article créé avec succès !", post: newPost });
   } catch (error) {
@@ -25,34 +25,36 @@ router.post("/post", authenticateToken, async (req, res) => {
   }
 });
 
-// la méthode suivante n'a pas inclu User_id donc erreur serveur
-/* router.post("/post", authenticateToken, async (req, res) => {
-  try {
-    const { title, article } = req.body;
-    const newPost = await Post.create({ title, article });
-
-    res
-      .status(201)
-      .json({ message: "Article créé avec succès !", post: newPost });
-  } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error });
-  }
-}); */
-
-// Récupérer tous les articles
+// Récupérer tous les articles avec les auteurs
 router.get("/posts", async (req, res) => {
   try {
-    const posts = await Post.findAll();
+    const posts = await Post.findAll({
+      include: [
+        {
+          model: User,
+          as: "author",
+          attributes: ["id", "firstname", "lastname", "email"],
+        },
+      ],
+    });
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error });
   }
 });
 
-// Récupérer un article par ID
+// Récupérer un article spécifique par ID, avec l'auteur
 router.get("/posts/:id", async (req, res) => {
   try {
-    const post = await Post.findByPk(req.params.id);
+    const post = await Post.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: "author",
+          attributes: ["id", "firstname", "lastname", "email"],
+        },
+      ],
+    });
     if (!post) return res.status(404).json({ message: "Article non trouvé !" });
 
     res.json(post);
@@ -65,26 +67,46 @@ router.get("/posts/:id", async (req, res) => {
 router.put("/posts/:id", authenticateToken, async (req, res) => {
   try {
     const { title, article } = req.body;
+    const user_id = req.user.id;
+
     const post = await Post.findByPk(req.params.id);
     if (!post) return res.status(404).json({ message: "Article non trouvé !" });
 
+    if (post.user_id !== user_id) {
+      return res
+        .status(403)
+        .json({ message: "Non autorisé à modifier cet article." });
+    }
+
     await post.update({ title, article });
-    res.json({ message: "Article mis à jour !", post });
+
+    return res.json({ message: "Article mis à jour !", post });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error });
+    return res.status(500).json({ message: "Erreur serveur", error });
   }
 });
 
 // Supprimer un article (Protégé par JWT)
 router.delete("/posts/:id", authenticateToken, async (req, res) => {
   try {
+    const user_id = req.user.id;
+
     const post = await Post.findByPk(req.params.id);
     if (!post) return res.status(404).json({ message: "Article non trouvé !" });
 
+    if (post.user_id !== user_id) {
+      return res
+        .status(403)
+        .json({ message: "Non autorisé à supprimer cet article." });
+    }
+
     await post.destroy();
-    res.json({ message: "Article supprimé !" });
+    return res.json({ message: "Article supprimé !" });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error });
+    if (error.name === "SequelizeDatabaseError") {
+      return res.status(400).json({ message: "Erreur SQL", error });
+    }
+    return res.status(500).json({ message: "Erreur serveur", error });
   }
 });
 

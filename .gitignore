@@ -10,11 +10,9 @@ logs/
 
 # Dépendances locales de l'éditeur
 .vscode/
-.idea/
 
-# Fichiers générés par npm/yarn
+# Fichiers générés par npm
 package-lock.json
-yarn.lock
 
 # Cache de l'environnement
 npm-debug.log*
